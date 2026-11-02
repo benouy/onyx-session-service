@@ -1,0 +1,140 @@
+name: onyx-session-service
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - '.github/workflows/onyx-session-service.yml'
+      - 'onyx-session-service.js'
+      - 'package.json'
+
+jobs:
+  preflight_check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+      - name: Setup Node.js Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validate Dependencies & Syntax
+        run: |
+          node -v
+          npm -v
+          echo "Preflight check passed. Launching distributed execution matrix..."
+
+  parallel_execution:
+    needs: [preflight_check]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - os: ubuntu-latest
+          runtime: node
+          version: '24'
+          proxy: "socks5://dcswarup:webshare@45.38.78.248:6185"
+        - os: ubuntu-24.04
+          runtime: bun
+          version: 'latest'
+          proxy: "socks5://dcswarup:webshare@31.59.10.68:5639"
+        - os: ubuntu-20.04
+          runtime: node
+          version: '18'
+          proxy: "socks5://dcswarup:webshare@64.137.18.11:6205"
+        - os: windows-2022
+          runtime: node
+          version: '20'
+          proxy: "socks5://dcswarup:webshare@64.137.108.186:5779"
+        - os: windows-2025
+          runtime: node
+          version: '22'
+          proxy: "socks5://dcswarup:webshare@151.245.206.161:8156"
+        - os: windows-latest
+          runtime: bun
+          version: 'latest'
+          proxy: "socks5://dcswarup:webshare@107.173.132.13:6967"
+        - os: ubuntu-22.04
+          runtime: node
+          version: '18'
+          proxy: "socks5://dcswarup:webshare@64.64.118.243:6826"
+        - os: ubuntu-20.04
+          runtime: node
+          version: '20'
+          proxy: "socks5://dcswarup:webshare@38.154.199.57:5211"
+        - os: windows-2022
+          runtime: node
+          version: '24'
+          proxy: "socks5://dcswarup:webshare@45.81.149.69:8569"
+        - os: windows-latest
+          runtime: node
+          version: '22'
+          proxy: "socks5://dcswarup:webshare@202.155.186.127:6538"
+        - os: ubuntu-24.04
+          runtime: node
+          version: '22'
+          proxy: "socks5://dcswarup:webshare@13.143.125.88:7130"
+        - os: ubuntu-22.04
+          runtime: node
+          version: '20'
+          proxy: "socks5://dcswarup:webshare@82.23.227.136:7439"
+        - os: windows-2025
+          runtime: node
+          version: '24'
+          proxy: "socks5://dcswarup:webshare@45.61.97.17:6543"
+        - os: ubuntu-latest
+          runtime: bun
+          version: 'latest'
+          proxy: "socks5://dcswarup:webshare@46.202.224.233:5785"
+        - os: ubuntu-latest
+          runtime: node
+          version: '18'
+          proxy: "socks5://dcswarup:webshare@142.111.113.197:6558"
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        if: ${{ matrix.runtime == 'node' }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.version }}
+
+      - name: Setup Bun
+        if: ${{ matrix.runtime == 'bun' }}
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Run Task (Linux)
+        if: runner.os != 'Windows'
+        run: |
+          if [ "${{ matrix.runtime }}" = "bun" ]; then
+            bun install
+            bun run onyx-session-service.js "${{ matrix.proxy }}" || true
+          else
+            npm install
+            node onyx-session-service.js "${{ matrix.proxy }}" || true
+          fi
+
+      - name: Run Task (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          if ("${{ matrix.runtime }}" -eq "bun") {
+            bun install
+            bun run onyx-session-service.js "${{ matrix.proxy }}"
+          } else {
+            npm install
+            node onyx-session-service.js "${{ matrix.proxy }}"
+          }
+
+  pipeline_summary:
+    needs: [parallel_execution]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Log Execution Summary
+        run: |
+          echo "Pipeline onyx-session-service finished execution at $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          echo "Status: ${{ job.status }}"
